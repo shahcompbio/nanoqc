@@ -4,6 +4,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 include { SAMTOOLS_STATS         } from '../modules/nf-core/samtools/stats/main'
+include { NANOPLOT               } from '../modules/nf-core/nanoplot/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -33,7 +34,12 @@ workflow NANOQC {
     // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
     // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
     SAMTOOLS_STATS(ch_samplesheet, [[id: 'genome'], params.fasta])
+    ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_STATS.out.stats.collect { it[1] })
     ch_versions = ch_versions.mix(SAMTOOLS_STATS.out.versions)
+    ch_bam = ch_samplesheet.map { meta, bam, bai -> tuple(meta, bam) }
+    NANOPLOT(ch_bam)
+    ch_multiqc_files = ch_multiqc_files.mix(NANOPLOT.out.txt.collect { it[1] })
+    ch_versions = ch_versions.mix(NANOPLOT.out.versions)
     //
     // Collate and save software versions
     //
