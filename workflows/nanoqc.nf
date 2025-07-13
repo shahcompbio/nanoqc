@@ -5,6 +5,7 @@
 */
 include { SAMTOOLS_STATS         } from '../modules/nf-core/samtools/stats/main'
 include { NANOPLOT               } from '../modules/nf-core/nanoplot/main'
+include { SAMTOOLS_VIEW          } from '../modules/nf-core/samtools/view/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -40,6 +41,17 @@ workflow NANOQC {
     NANOPLOT(ch_bam)
     ch_multiqc_files = ch_multiqc_files.mix(NANOPLOT.out.txt.collect { it[1] })
     ch_versions = ch_versions.mix(NANOPLOT.out.versions)
+    // filter reads
+    if (params.filter_reads) {
+        ch_filtered = SAMTOOLS_VIEW(
+            ch_samplesheet,
+            [[], []],
+            [],
+            "bai",
+        )
+        ch_bam = ch_filtered.bam
+        ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
+    }
     //
     // Collate and save software versions
     //

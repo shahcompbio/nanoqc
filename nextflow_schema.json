@@ -226,6 +226,25 @@
                     "hidden": true
                 }
             }
+        },
+        "read_filtering": {
+            "title": "Read filtering",
+            "type": "object",
+            "description": "Filter reads based on mapq and read length",
+            "default": "",
+            "properties": {
+                "filter_reads": {
+                    "type": "boolean"
+                },
+                "mapq": {
+                    "type": "integer",
+                    "default": 20
+                },
+                "read_len": {
+                    "type": "integer",
+                    "default": 500
+                }
+            }
         }
     },
     "allOf": [
@@ -240,6 +259,9 @@
         },
         {
             "$ref": "#/$defs/generic_options"
+        },
+        {
+            "$ref": "#/$defs/read_filtering"
         }
     ]
 }

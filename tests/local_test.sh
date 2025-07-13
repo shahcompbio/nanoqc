@@ -16,4 +16,5 @@ nextflow run ${pipelinedir}/main.nf \
     --outdir ${outdir} \
     --input ${samplesheet} \
     --fasta ${refgenome} \
+    --filter_reads \
     -resume
