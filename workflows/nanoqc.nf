@@ -3,14 +3,14 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { SAMTOOLS_STATS         } from '../modules/nf-core/samtools/stats/main'
-include { NANOPLOT               } from '../modules/nf-core/nanoplot/main'
-include { SAMTOOLS_VIEW          } from '../modules/nf-core/samtools/view/main'
-include { MULTIQC                } from '../modules/nf-core/multiqc/main'
-include { paramsSummaryMap       } from 'plugin/nf-schema'
-include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_nanoqc_pipeline'
+include { SAMTOOLS_STATS                } from '../modules/nf-core/samtools/stats/main'
+include { NANOPLOT ; NANOPLOT as FILTERED_NANOPLOT } from '../modules/nf-core/nanoplot/main'
+include { SAMTOOLS_VIEW                 } from '../modules/nf-core/samtools/view/main'
+include { MULTIQC                       } from '../modules/nf-core/multiqc/main'
+include { paramsSummaryMap              } from 'plugin/nf-schema'
+include { paramsSummaryMultiqc          } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { softwareVersionsToYAML        } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { methodsDescriptionText        } from '../subworkflows/local/utils_nfcore_nanoqc_pipeline'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,8 +49,10 @@ workflow NANOQC {
             [],
             "bai",
         )
-        ch_bam = ch_filtered.bam
         ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
+        FILTERED_NANOPLOT(ch_filtered.bam)
+        ch_multiqc_files = ch_multiqc_files.mix(FILTERED_NANOPLOT.out.txt.collect { it[1] })
+        ch_versions = ch_versions.mix(FILTERED_NANOPLOT.out.versions)
     }
     //
     // Collate and save software versions
