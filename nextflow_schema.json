@@ -65,6 +65,10 @@
                     "help_text": "This parameter is *mandatory* if `--genome` is not specified. If you don't have a BWA index available this will be generated for you automatically. Combine with `--save_reference` to save BWA index for future runs.",
                     "fa_icon": "far fa-file-code"
                 },
+                "gtf": {
+                    "type": "string",
+                    "description": "path to GTF transcriptome file (for RNAseq)"
+                },
                 "igenomes_ignore": {
                     "type": "boolean",
                     "description": "Do not load the iGenomes reference config.",
@@ -263,5 +267,12 @@
         {
             "$ref": "#/$defs/read_filtering"
         }
-    ]
+    ],
+    "properties": {
+        "protocol": {
+            "type": "string",
+            "default": "RNA",
+            "description": "Input sample type. Valid options: 'DNA' or 'RNA'"
+        }
+    }
 }

@@ -3,14 +3,17 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { SAMTOOLS_STATS                } from '../modules/nf-core/samtools/stats/main'
-include { NANOPLOT ; NANOPLOT as FILTERED_NANOPLOT } from '../modules/nf-core/nanoplot/main'
-include { SAMTOOLS_VIEW                 } from '../modules/nf-core/samtools/view/main'
-include { MULTIQC                       } from '../modules/nf-core/multiqc/main'
-include { paramsSummaryMap              } from 'plugin/nf-schema'
-include { paramsSummaryMultiqc          } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { softwareVersionsToYAML        } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { methodsDescriptionText        } from '../subworkflows/local/utils_nfcore_nanoqc_pipeline'
+include { UCSC_GTFTOGENEPRED          } from '../modules/nf-core/ucsc/gtftogenepred/main'
+include { SAMTOOLS_STATS              } from '../modules/nf-core/samtools/stats/main'
+include { NANOPLOT                    } from '../modules/nf-core/nanoplot/main'
+include { SAMTOOLS_VIEW               } from '../modules/nf-core/samtools/view/main'
+include { PICARD_COLLECTRNASEQMETRICS } from '../modules/nf-core/picard/collectrnaseqmetrics/main'
+include { RSEQC_BAMSTAT               } from '../modules/nf-core/rseqc/bamstat/main'
+include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
+include { paramsSummaryMap            } from 'plugin/nf-schema'
+include { paramsSummaryMultiqc        } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { softwareVersionsToYAML      } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { methodsDescriptionText      } from '../subworkflows/local/utils_nfcore_nanoqc_pipeline'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -26,22 +29,7 @@ workflow NANOQC {
 
     ch_versions = Channel.empty()
     ch_multiqc_files = Channel.empty()
-    //
-    // MODULE: Run FastQC
-    //
-    // FASTQC (
-    //     ch_samplesheet
-    // )
-    // ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    // ch_versions = ch_versions.mix(FASTQC.out.versions.first())
-    SAMTOOLS_STATS(ch_samplesheet, [[id: 'genome'], params.fasta])
-    ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_STATS.out.stats.collect { it[1] })
-    ch_versions = ch_versions.mix(SAMTOOLS_STATS.out.versions)
-    ch_bam = ch_samplesheet.map { meta, bam, bai -> tuple(meta, bam) }
-    NANOPLOT(ch_bam)
-    ch_multiqc_files = ch_multiqc_files.mix(NANOPLOT.out.txt.collect { it[1] })
-    ch_versions = ch_versions.mix(NANOPLOT.out.versions)
-    // filter reads
+    // read filtering on mapq and raw read length
     if (params.filter_reads) {
         ch_filtered = SAMTOOLS_VIEW(
             ch_samplesheet,
@@ -49,10 +37,28 @@ workflow NANOQC {
             [],
             "bai",
         )
-        ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions.first())
-        FILTERED_NANOPLOT(ch_filtered.bam)
-        ch_multiqc_files = ch_multiqc_files.mix(FILTERED_NANOPLOT.out.txt.collect { it[1] })
-        ch_versions = ch_versions.mix(FILTERED_NANOPLOT.out.versions)
+        ch_versions = ch_versions.mix(SAMTOOLS_VIEW.out.versions)
+        ch_bam = ch_filtered.bam
+    }
+    else {
+        ch_bam = ch_samplesheet.map { meta, bam, bai -> tuple(meta, bam) }
+    }
+    // collect stats on bam files
+    SAMTOOLS_STATS(ch_samplesheet, [[id: 'genome'], params.fasta])
+    ch_multiqc_files = ch_multiqc_files.mix(SAMTOOLS_STATS.out.stats.collect { it[1] })
+    ch_versions = ch_versions.mix(SAMTOOLS_STATS.out.versions)
+    NANOPLOT(ch_bam)
+    ch_multiqc_files = ch_multiqc_files.mix(NANOPLOT.out.txt.collect { it[1] })
+    ch_versions = ch_versions.mix(NANOPLOT.out.versions)
+    RSEQC_BAMSTAT(ch_bam)
+    ch_multiqc_files = ch_multiqc_files.mix(RSEQC_BAMSTAT.out.txt.collect { it[1] })
+    ch_versions = ch_versions.mix(RSEQC_BAMSTAT.out.versions)
+    if (params.protocol == 'RNA') {
+        UCSC_GTFTOGENEPRED([[id: 'genome'], params.gtf])
+        ref_flat = UCSC_GTFTOGENEPRED.out.refflat.collect { it[1] }
+        PICARD_COLLECTRNASEQMETRICS(ch_bam, ref_flat, params.fasta, [])
+        ch_multiqc_files = ch_multiqc_files.mix(PICARD_COLLECTRNASEQMETRICS.out.metrics.collect { it[1] })
+        ch_versions = ch_versions.mix(PICARD_COLLECTRNASEQMETRICS.out.versions)
     }
     //
     // Collate and save software versions
