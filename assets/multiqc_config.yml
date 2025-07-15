@@ -12,3 +12,10 @@ report_section_order:
 export_plots: false
 
 disable_version_detection: true
+
+extra_fn_clean_exts:
+  - type: remove
+    pattern: .NanoStats
+  - type: remove
+    pattern: .filtered
+
