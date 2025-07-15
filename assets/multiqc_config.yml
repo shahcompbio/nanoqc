@@ -13,6 +13,8 @@ export_plots: false
 
 disable_version_detection: true
 
+log_filesize_limit: 2000000000
+
 extra_fn_clean_exts:
   - type: remove
     pattern: .NanoStats
