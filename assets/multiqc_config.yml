@@ -15,12 +15,14 @@ disable_version_detection: true
 
 log_filesize_limit: 2000000000
 
+picard_config:
+  s_name_filenames: true
+
 extra_fn_clean_exts:
   - type: remove
     pattern: .NanoStats
   - type: remove
     pattern: .filtered
-
-picard_config:
-  s_name_filenames: true
+  - type: remove
+    pattern: .rna_metrics
 
