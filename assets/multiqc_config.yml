@@ -21,3 +21,6 @@ extra_fn_clean_exts:
   - type: remove
     pattern: .filtered
 
+picard_config:
+  s_name_filenames: true
+
